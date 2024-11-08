@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByTon Interface</title>
+    <title>N-TROUS Game</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -82,8 +81,37 @@
             text-align: center;
             margin-top: 20px;
         }
+
+        .input-group {
+            margin: 10px 0;
+        }
+
+        #usernameAlert {
+            color: green;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.1/web3.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
     <script>
+        // Konfigurasi Firebase
+        const firebaseConfig = {
+            databaseURL: "https://airdropnitrous-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Koneksi ke jaringan Polygon melalui Infura
+        const web3 = new Web3(new Web3.providers.HttpProvider("https://polygon-mainnet.infura.io/v3/4b83836820944bf0bba486179ee4dbfd"));
+
+        // Smart contract address dan ABI
+        const contractAddress = "0xd863ba508ce896960D2a885eAFD84Bb5179B1f5D";
+        const contractABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"rewardAmount","type":"uint256"}],"name":"AirdropDistributed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RewardAccumulated","type":"event"},{"inputs":[],"name":"accumulateReward","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"airdropDate","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"airdropDistributed","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balances","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"distributeAirdrop","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"participants","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"rewardPerClick","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"rewardsAccumulated","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
+        const contract = new web3.eth.Contract(contractABI, contractAddress);
+
         document.addEventListener('DOMContentLoaded', function() {
             let coinCount = parseInt(localStorage.getItem('coinCount')) || 0;
             document.getElementById('coinCount').innerText = 'GCO: ' + coinCount;
@@ -125,67 +153,126 @@
             }
 
             showPage('home');
-        });
 
-        function saveUsername() {
-            const username = document.getElementById('usernameInput').value;
-            localStorage.setItem('username', username);
-            alert('Nama pengguna disimpan sebagai: ' + username);
-        }
+            async function connectWallet() {
+                if (window.ethereum) {
+                    window.web3 = new Web3(window.ethereum);
+                    try {
+                        await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        const accounts = await web3.eth.getAccounts();
+                        const currentAccount = accounts[0];
+
+                        sessionStorage.setItem('connectedAccount', currentAccount);
+                        document.getElementById('walletAddress').innerText = "Wallet Tersambung: " + currentAccount;
+                        alert('Wallet berhasil tersambung: ' + currentAccount);
+                    } catch (error) {
+                        alert('Gagal menghubungkan ke wallet');
+                    }
+                } else {
+                    alert('MetaMask tidak terdeteksi! Silakan instal MetaMask.');
+                }
+            }
+
+            async function signTransaction() {
+                const connectedAccount = sessionStorage.getItem('connectedAccount');
+                if (window.ethereum && connectedAccount) {
+                    try {
+                        const message = "Konfirmasi transaksi di N-TROUS Game";
+                        const signature = await web3.eth.personal.sign(message, connectedAccount, '');
+                        alert('Tanda tangan berhasil: ' + signature);
+                    } catch (error) {
+                        alert('Tanda tangan gagal: ' + error.message);
+                    }
+                } else {
+                    alert('Sambungkan wallet Anda terlebih dahulu.');
+                }
+            }
+
+            document.getElementById('connectWallet').addEventListener('click', connectWallet);
+            document.getElementById('signTransaction').addEventListener('click', signTransaction);
+
+            // Menambahkan nama pengguna
+            const usernameInput = document.getElementById('usernameInput');
+            const saveUsernameButton = document.getElementById('saveUsernameButton');
+            const usernameAlert = document.getElementById('usernameAlert');
+
+            // Jika nama pengguna telah tersimpan
+            if (localStorage.getItem('username')) {
+                usernameInput.value = localStorage.getItem('username');
+                usernameInput.disabled = true;
+                saveUsernameButton.disabled = true;
+                usernameAlert.innerText = 'Nama Anda sudah tersimpan: ' + localStorage.getItem('username');
+            }
+
+            saveUsernameButton.addEventListener('click', function() {
+                const username = usernameInput.value.trim();
+                if (username !== '') {
+                    localStorage.setItem('username', username);
+                    usernameInput.value = '';  // Mengosongkan kolom input setelah disimpan
+                    usernameInput.disabled = true;
+                    saveUsernameButton.disabled = true;
+                    usernameAlert.innerText = 'Nama Anda sudah tersimpan: ' + username;
+                }
+            });
+        });
     </script>
 </head>
 <body>
     <header>
-        <h1>Selamat Datang di ByTon</h1>
-        <nav>
-            <ul>
-                <li><a href="#" data-page="home">Home</a></li>
-                <li><a href="#" data-page="game">Game</a></li>
-                <li><a href="#" data-page="marketplace">Marketplace</a></li>
-                <li><a href="#" data-page="community">Community</a></li>
-                <li><a href="#" data-page="leaderboard">Leaderboard</a></li>
-                <li><a href="#" data-page="username">Nama Pengguna</a></li>
-            </ul>
-        </nav>
+        <h1>N-TROUS Game</h1>
     </header>
+
+    <nav>
+        <ul>
+            <li><a href="#" data-page="home">Home</a></li>
+            <li><a href="#" data-page="leaderboard">Leaderboard</a></li>
+            <li><a href="#" data-page="contact">Contact</a></li>
+        </ul>
+    </nav>
+
     <main>
         <section id="home" class="page-section">
-            <h2>Home</h2>
-            <p>Selamat datang di ByTon, tempat Anda bisa memainkan game dan mendapatkan GCO!</p>
-        </section>
+            <h2>Selamat datang di N-TROUS Game</h2>
+            <p>Permainan ini memungkinkan Anda untuk mengumpulkan GCO dengan mengetuk koin!</p>
+            <button id="startGame">Mulai Permainan</button>
 
-        <section id="game" class="page-section">
-            <h2>Game</h2>
-            <p>Tap pada koin untuk mendapatkan GCO!</p>
-            <button id="startGame">Mulai Bermain</button>
-            <div id="coinAnimation">GCO</div>
-            <div id="coinCount">GCO: 0</div>
-        </section>
-
-        <section id="marketplace" class="page-section">
-            <h2>Marketplace</h2>
-            <p>Marketplace di mana Anda dapat menukar atau membeli item dengan GCO Anda.</p>
-            <a href="https://coinmarketcap.com/dexscan/polygon/0xccf259625605d763fa7732e5f04bb0068e04246e" target="_blank">Buka Marketplace</a>
-        </section>
-
-        <section id="community" class="page-section">
-            <h2>Community</h2>
-            <p>Bergabunglah dengan komunitas kami untuk diskusi dan pembaruan terbaru.</p>
+            <div id="coinAnimation">
+                <span>Tap Koin</span>
+            </div>
+            <p id="coinCount">GCO: 0</p>
         </section>
 
         <section id="leaderboard" class="page-section">
             <h2>Leaderboard</h2>
-            <div id="leaderboardList">Peringkat tertinggi akan muncul di sini</div>
+            <div id="leaderboardList">
+                <!-- Daftar leaderboard akan muncul di sini -->
+            </div>
         </section>
 
-        <section id="username" class="page-section">
-            <h2>Atur Nama Pengguna</h2>
-            <input type="text" id="usernameInput" placeholder="Masukkan nama pengguna">
-            <button onclick="saveUsername()">Simpan Nama Pengguna</button>
+        <section id="contact" class="page-section">
+            <h2>Hubungi Kami</h2>
+            <p>Untuk lebih lanjut, kunjungi <a href="https://t.me/CryptoAirdropOpen" target="_blank">Telegram Kami</a></p>
+        </section>
+
+        <section id="walletSection">
+            <h2>Connect Wallet</h2>
+            <button id="connectWallet">Connect MetaMask</button>
+            <p id="walletAddress">Wallet belum tersambung</p>
+            <button id="signTransaction">Sign Transaksi</button>
+        </section>
+
+        <section id="usernameSection">
+            <h2>Set Nama Pengguna</h2>
+            <div class="input-group">
+                <input type="text" id="usernameInput" placeholder="Masukkan Nama Anda" />
+                <button id="saveUsernameButton">Simpan Nama</button>
+            </div>
+            <p id="usernameAlert"></p>
         </section>
     </main>
+
     <footer>
-        <p>&copy; 2024 ByTon. Ikuti kami di <a href="https://t.me/CryptoAirdropOpen" target="_blank">Telegram</a>.</p>
+        <p>&copy; 2024 N-TROUS Game. Semua hak dilindungi.</p>
     </footer>
 </body>
 </html>
